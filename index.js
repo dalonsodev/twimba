@@ -19,7 +19,7 @@ function syncWithLocalStorage() {
    const userData = JSON.parse(localStorage.getItem('userData'))
 
    // Actualizar tweetsData (dummy)
-   tweetsData.forEach(function(tweet) {
+   tweetsData.forEach(tweet => {
       tweet.isLiked = userData.likedTweets.includes(tweet.uuid)
       tweet.isRetweeted = userData.retweetedTweets.includes(tweet.uuid)
    })
@@ -35,7 +35,7 @@ function syncWithLocalStorage() {
 syncWithLocalStorage()
 
 // 3. MANEJADORES DE EVENTOS
-document.addEventListener('click', function(e) {
+document.addEventListener('click', (e) => {
    if (e.target.dataset.like) {
       handleLikeClick(e.target.dataset.like)
    } else if (e.target.dataset.retweet) {
@@ -55,7 +55,7 @@ function findTweet(tweetId) {
    let tweet = null
    
    // Buscar en tweets del usuario
-   userData.tweetedTweets.forEach(function(t) {
+   userData.tweetedTweets.forEach( t => {
       if (t.uuid === tweetId) {
          tweet = t
       }
@@ -63,7 +63,7 @@ function findTweet(tweetId) {
    
    // Si no está, buscar en tweetsData
    if (!tweet) {
-      tweetsData.forEach(function(t) {
+      tweetsData.forEach( t => {
          if (t.uuid === tweetId) {
                tweet = t
          }
@@ -94,7 +94,7 @@ function handleLikeClick(tweetId) {
 
    // Si es tweet del usuario, actualizarlo en el array
    let userTweetIndex = -1
-   userData.tweetedTweets.forEach(function(t, index) {
+   userData.tweetedTweets.forEach((t, index) => {
       if (t.uuid === tweetId) {
          userTweetIndex = index
       }
@@ -126,7 +126,7 @@ function handleRetweetClick(tweetId) {
    }
 
    let userTweetIndex = -1
-   userData.tweetedTweets.forEach(function(t, index) {
+   userData.tweetedTweets.forEach((t, index) => {
       if (t.uuid === tweetId) {
          userTweetIndex = index
       }
@@ -150,7 +150,7 @@ function handleDeleteClick(tweetId) {
    const userData = JSON.parse(localStorage.getItem('userData'))
    const newTweets = []
    
-   userData.tweetedTweets.forEach(function(t) {
+   userData.tweetedTweets.forEach(t => {
       if (t.uuid !== tweetId) {
          newTweets.push(t)
       }
@@ -191,13 +191,13 @@ function getFeedHtml() {
    const allTweets = userData.tweetedTweets.concat(tweetsData)
    let html = ''
 
-   allTweets.forEach(function(tweet) {
+   allTweets.forEach(tweet => {
       const likeClass = tweet.isLiked ? 'liked' : ''
       const retweetClass = tweet.isRetweeted ? 'retweeted' : ''
       
       let repliesHtml = ''
       if (tweet.replies) {
-         tweet.replies.forEach(function(reply) {
+         tweet.replies.forEach(reply => {
             repliesHtml += `
                <div class="tweet-reply">
                   <div class="tweet-inner">
@@ -271,6 +271,7 @@ function getFeedHtml() {
          `
       }
    })
+
    return html
 }
 
