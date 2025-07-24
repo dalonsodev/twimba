@@ -6,15 +6,11 @@ let userDataCache = undefined
 
 // INITIALIZE LOCALSTORAGE
 function initStorage() {
-   // If localStorage empty
    if (!localStorage.getItem('userData')) {
-      // create an object to store user data
       userDataCache = { tweets: tweetsData }
-      // make it persist to localStorage
       persistToStorage()
-   }
+   } 
    else {
-      // get user data from localStorage
       const storedData = JSON.parse(localStorage.getItem('userData'))
       userDataCache = {
          tweets: storedData.tweets || 
@@ -59,7 +55,6 @@ function handleInteraction(tweetId, type) {
    const isLike = type === 'like'
    const interactionType = isLike ? 'isLiked' : 'isRetweeted'
    const counter = isLike ? 'likes' : 'retweets'
-   // const interactionsArr = isLike ? userDataCache.likedTweets : userDataCache.retweetedTweets
 
    // Update state and counter
    tweet[interactionType] = !tweet[interactionType]
@@ -83,7 +78,7 @@ function handleReplyClick(replyId) {
 // DELETE TWEETS (user's only)
 function handleDeleteClick(tweetId) {
    userDataCache.tweets = userDataCache.tweets
-      .filter(t => t.uuid !== tweetId || t.handle !== '@yoDalonso') // (temporary) hardcoded value here!
+      .filter(t => t.uuid !== tweetId || t.handle !== '@yoDalonso') // -----> hardcoded value here!
    
    persistToStorage()
    render()
