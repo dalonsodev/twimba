@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'https://jspm.dev/uuid'
 // Memory cache - undefined on purpose!
 let userDataCache = undefined
 
+const inputEl = document.getElementById("tweet-input")
+
 // INITIALIZE LOCALSTORAGE
 function initStorage() {
    if (!localStorage.getItem('userData')) {
@@ -38,6 +40,12 @@ document.addEventListener('click', (e) => {
    } else if (e.target.dataset.delete) {
       handleDeleteClick(e.target.dataset.delete)
    } else if (e.target.id === 'tweet-btn') {
+      handleTweetBtnClick()
+   }
+})
+
+inputEl.addEventListener('keydown', (e) => {
+   if (e.key === "Enter") {
       handleTweetBtnClick()
    }
 })
@@ -86,15 +94,14 @@ function handleDeleteClick(tweetId) {
 
 // PUBLISH NEW TWEET
 function handleTweetBtnClick() {
-   const tweetInput = document.getElementById('tweet-input')
-   if (!tweetInput.value) return
+   if (!inputEl.value) return
 
    userDataCache.tweets.unshift({
       handle: '@yoDalonso',
       profilePic: 'images/dalonso-color.png',
       likes: 0,
       retweets: 0,
-      tweetText: tweetInput.value,
+      tweetText: inputEl.value,
       replies: [],
       isLiked: false,
       isRetweeted: false,
@@ -102,7 +109,7 @@ function handleTweetBtnClick() {
    })
 
    persistToStorage()
-   tweetInput.value = ''
+   inputEl.value = ''
    render()
 }
 
@@ -196,7 +203,11 @@ function getFeedHtml() {
 
 // RENDER FUNCTION (final)
 function render() {
-   document.getElementById('feed').innerHTML = getFeedHtml()
+   const feed = document.getElementById('feed')
+   const tempDiv = document.createElement('div')
+   tempDiv.innerHTML = getFeedHtml()
+   feed.innerHTML = ''
+   feed.append(...tempDiv.childNodes)
 }
 
 // INITIALIZE
