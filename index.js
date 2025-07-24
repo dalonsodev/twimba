@@ -1,45 +1,42 @@
 import { tweetsData } from './data.js'
 import { v4 as uuidv4 } from 'https://jspm.dev/uuid'
 
-// 1. INICIALIZAR LOCALSTORAGE
+// Memory cache - undefined on purpose!
+let userDataCache = undefined
+
+// INITIALIZE LOCALSTORAGE
 function initStorage() {
+   // If localStorage empty
    if (!localStorage.getItem('userData')) {
-      const initialUserData = {
-         tweetedTweets: [],
-         likedTweets: [],
-         retweetedTweets: []
+      // create an object to store user data
+      userDataCache = { tweets: tweetsData }
+      // make it persist to localStorage
+      persistToStorage()
+   }
+   else {
+      // get user data from localStorage
+      const storedData = JSON.parse(localStorage.getItem('userData'))
+      userDataCache = {
+         tweets: storedData.tweets || 
+            (storedData.tweetedTweets ? [...storedData.tweetedTweets, ...tweetsData] 
+               : tweetsData)
       }
-      localStorage.setItem('userData', JSON.stringify(initialUserData))
+      persistToStorage()
    }
 }
 initStorage()
 
-// 2. SINCRONIZAR ESTADOS (likes/retweets)
-function syncWithLocalStorage() {
-   const userData = JSON.parse(localStorage.getItem('userData'))
-
-   // Actualizar tweetsData (dummy)
-   tweetsData.forEach(tweet => {
-      tweet.isLiked = userData.likedTweets.includes(tweet.uuid)
-      tweet.isRetweeted = userData.retweetedTweets.includes(tweet.uuid)
-   })
-
-   // Actualizar tweets del usuario
-   userData.tweetedTweets.forEach(function(tweet) {
-      tweet.isLiked = userData.likedTweets.includes(tweet.uuid)
-      tweet.isRetweeted = userData.retweetedTweets.includes(tweet.uuid)
-   })
-
-   localStorage.setItem('userData', JSON.stringify(userData))
+// PERSIST TO LOCAL STORAGE
+function persistToStorage() {
+   localStorage.setItem('userData', JSON.stringify(userDataCache))
 }
-syncWithLocalStorage()
 
-// 3. MANEJADORES DE EVENTOS
+// EVENT HANDLERS
 document.addEventListener('click', (e) => {
    if (e.target.dataset.like) {
-      handleLikeClick(e.target.dataset.like)
+      handleInteraction(e.target.dataset.like, 'like')
    } else if (e.target.dataset.retweet) {
-      handleRetweetClick(e.target.dataset.retweet)
+      handleInteraction(e.target.dataset.retweet, 'retweet')
    } else if (e.target.dataset.reply) {
       handleReplyClick(e.target.dataset.reply)
    } else if (e.target.dataset.delete) {
@@ -49,126 +46,55 @@ document.addEventListener('click', (e) => {
    }
 })
 
-// 4. FUNCIÓN PARA BUSCAR TWEETS (en ambos arrays)
+// FIND TWEET FUNCTION
 function findTweet(tweetId) {
-   const userData = JSON.parse(localStorage.getItem('userData'))
-   let tweet = null
-   
-   // Buscar en tweets del usuario
-   userData.tweetedTweets.forEach( t => {
-      if (t.uuid === tweetId) {
-         tweet = t
-      }
-   })
-   
-   // Si no está, buscar en tweetsData
-   if (!tweet) {
-      tweetsData.forEach( t => {
-         if (t.uuid === tweetId) {
-               tweet = t
-         }
-      })
-   }
-   
-   return tweet
+   return userDataCache.tweets.find(tweet => tweet.uuid === tweetId)
 }
 
-// 5. MANEJADOR DE LIKES (funciona para ambos tipos de tweets)
-function handleLikeClick(tweetId) {
+// LIKES & RETWEETS (GENERIC) HANDLER
+function handleInteraction(tweetId, type) {
    const tweet = findTweet(tweetId)
    if (!tweet) return
 
-   const userData = JSON.parse(localStorage.getItem('userData'))
+   const isLike = type === 'like'
+   const interactionType = isLike ? 'isLiked' : 'isRetweeted'
+   const counter = isLike ? 'likes' : 'retweets'
+   // const interactionsArr = isLike ? userDataCache.likedTweets : userDataCache.retweetedTweets
 
-   // Actualizar estado
-   tweet.isLiked = !tweet.isLiked
-   tweet.likes += tweet.isLiked ? 1 : -1
+   // Update state and counter
+   tweet[interactionType] = !tweet[interactionType]
+   tweet[counter] += tweet[interactionType] ? 1 : -1
 
-   // Actualizar lista de likes
-   const likeIndex = userData.likedTweets.indexOf(tweetId)
-   if (tweet.isLiked && likeIndex === -1) {
-      userData.likedTweets.push(tweetId)
-   } else if (!tweet.isLiked && likeIndex !== -1) {
-      userData.likedTweets.splice(likeIndex, 1)
+   // Update tweet in userDataCache.tweets
+   const tweetIndex = userDataCache.tweets.findIndex(t => t.uuid === tweetId)
+   if (tweetIndex !== -1) {
+      userDataCache.tweets[tweetIndex] = tweet
    }
 
-   // Si es tweet del usuario, actualizarlo en el array
-   let userTweetIndex = -1
-   userData.tweetedTweets.forEach((t, index) => {
-      if (t.uuid === tweetId) {
-         userTweetIndex = index
-      }
-   })
-   
-   if (userTweetIndex !== -1) {
-      userData.tweetedTweets[userTweetIndex] = tweet
-   }
-
-   localStorage.setItem('userData', JSON.stringify(userData))
+   persistToStorage()
    render()
 }
 
-// 6. MANEJADOR DE RETWEETS (igual que likes)
-function handleRetweetClick(tweetId) {
-   const tweet = findTweet(tweetId)
-   if (!tweet) return
-
-   const userData = JSON.parse(localStorage.getItem('userData'))
-
-   tweet.isRetweeted = !tweet.isRetweeted
-   tweet.retweets += tweet.isRetweeted ? 1 : -1
-
-   const rtIndex = userData.retweetedTweets.indexOf(tweetId)
-   if (tweet.isRetweeted && rtIndex === -1) {
-      userData.retweetedTweets.push(tweetId)
-   } else if (!tweet.isRetweeted && rtIndex !== -1) {
-      userData.retweetedTweets.splice(rtIndex, 1)
-   }
-
-   let userTweetIndex = -1
-   userData.tweetedTweets.forEach((t, index) => {
-      if (t.uuid === tweetId) {
-         userTweetIndex = index
-      }
-   })
-   
-   if (userTweetIndex !== -1) {
-      userData.tweetedTweets[userTweetIndex] = tweet
-   }
-
-   localStorage.setItem('userData', JSON.stringify(userData))
-   render()
-}
-
-// 7. MANEJADOR DE RESPUESTAS (sin cambios)
+// REPLIES HANDLER
 function handleReplyClick(replyId) {
    document.getElementById('replies-' + replyId).classList.toggle('hidden')
 }
 
-// 8. ELIMINAR TWEETS (solo los del usuario)
+// DELETE TWEETS (user's only)
 function handleDeleteClick(tweetId) {
-   const userData = JSON.parse(localStorage.getItem('userData'))
-   const newTweets = []
+   userDataCache.tweets = userDataCache.tweets
+      .filter(t => t.uuid !== tweetId || t.handle !== '@yoDalonso') // (temporary) hardcoded value here!
    
-   userData.tweetedTweets.forEach(t => {
-      if (t.uuid !== tweetId) {
-         newTweets.push(t)
-      }
-   })
-   
-   userData.tweetedTweets = newTweets
-   localStorage.setItem('userData', JSON.stringify(userData))
+   persistToStorage()
    render()
 }
 
-// 9. PUBLICAR NUEVO TWEET
+// PUBLISH NEW TWEET
 function handleTweetBtnClick() {
    const tweetInput = document.getElementById('tweet-input')
    if (!tweetInput.value) return
 
-   const userData = JSON.parse(localStorage.getItem('userData'))
-
-   userData.tweetedTweets.unshift({
+   userDataCache.tweets.unshift({
       handle: '@yoDalonso',
       profilePic: 'images/dalonso-color.png',
       likes: 0,
@@ -180,18 +106,16 @@ function handleTweetBtnClick() {
       uuid: uuidv4()
    })
 
-   localStorage.setItem('userData', JSON.stringify(userData))
+   persistToStorage()
    tweetInput.value = ''
    render()
 }
 
-// 10. RENDERIZADO (HTML completo)
+// GET HTML FEED
 function getFeedHtml() {
-   const userData = JSON.parse(localStorage.getItem('userData'))
-   const allTweets = userData.tweetedTweets.concat(tweetsData)
    let html = ''
 
-   allTweets.forEach(tweet => {
+   userDataCache.tweets.forEach(tweet => {
       const likeClass = tweet.isLiked ? 'liked' : ''
       const retweetClass = tweet.isRetweeted ? 'retweeted' : ''
       
@@ -275,10 +199,10 @@ function getFeedHtml() {
    return html
 }
 
-// 11. FUNCIÓN RENDER (final)
+// RENDER FUNCTION (final)
 function render() {
    document.getElementById('feed').innerHTML = getFeedHtml()
 }
 
-// Iniciar
+// INITIALIZE
 render()
